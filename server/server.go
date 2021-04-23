@@ -300,36 +300,45 @@ func setWillProperties(willPpt *packets.Properties, msg *gmqtt.Message) {
 }
 
 func (srv *server) lockDuplicatedID(c *client) (oldSession *gmqtt.Session, err error) {
-	for {
-		srv.mu.Lock()
-		oldSession, err = srv.sessionStore.Get(c.opts.ClientID)
-		if err != nil {
-			srv.mu.Unlock()
-			zaplog.Error("fail to get session",
-				zap.String("remote_addr", c.rwc.RemoteAddr().String()),
-				zap.String("client_id", c.opts.ClientID))
-			return
-		}
-		if oldSession != nil {
-			var oldClient *client
-			oldClient = srv.clients[oldSession.ClientID]
-			srv.mu.Unlock()
-			if oldClient == nil {
-				srv.mu.Lock()
-				break
-			}
-			// if there is a duplicated online client, close if first.
-			zaplog.Info("logging with duplicate ClientID",
-				zap.String("remote", c.rwc.RemoteAddr().String()),
-				zap.String("client_id", oldSession.ClientID),
-			)
-			oldClient.setError(codes.NewError(codes.SessionTakenOver))
-			oldClient.Close()
-			oldClient.wg.Wait()
-			continue
-		}
-		break
+	srv.mu.Lock()
+	oldSession, err = srv.sessionStore.Get(c.opts.ClientID)
+	if err != nil {
+		srv.mu.Unlock()
+		zaplog.Error("fail to get session",
+			zap.String("remote_addr", c.rwc.RemoteAddr().String()),
+			zap.String("client_id", c.opts.ClientID))
 	}
+	// TODO: bo-er Comment out to allow duplicate client ID
+	// for {
+	// 	srv.mu.Lock()
+	// 	oldSession, err = srv.sessionStore.Get(c.opts.ClientID)
+	// 	if err != nil {
+	// 		srv.mu.Unlock()
+	// 		zaplog.Error("fail to get session",
+	// 			zap.String("remote_addr", c.rwc.RemoteAddr().String()),
+	// 			zap.String("client_id", c.opts.ClientID))
+	// 		return
+	// 	}
+	// 	if oldSession != nil {
+	// 		var oldClient *client
+	// 		oldClient = srv.clients[oldSession.ClientID]
+	// 		srv.mu.Unlock()
+	// 		if oldClient == nil {
+	// 			srv.mu.Lock()
+	// 			break
+	// 		}
+	// 		// if there is a duplicated online client, close if first.
+	// 		zaplog.Info("logging with duplicate ClientID",
+	// 			zap.String("remote", c.rwc.RemoteAddr().String()),
+	// 			zap.String("client_id", oldSession.ClientID),
+	// 		)
+	// 		oldClient.setError(codes.NewError(codes.SessionTakenOver))
+	// 		oldClient.Close()
+	// 		oldClient.wg.Wait()
+	// 		continue
+	// 	}
+	// 	break
+	// }
 	return
 }
 

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/DrmagicE/gmqtt/pkg/codes"
 	log "github.com/sirupsen/logrus"
@@ -190,6 +189,10 @@ func (c *Connect) Unpack(r io.Reader) (err error) {
 			return err
 		}
 	}
+	log.WithFields(log.Fields{
+		"Byte":   bufr.Bytes(),
+		"String": bufr.String(),
+	}).Info("Received Connect Payload ARE:")
 	return c.unpackPayload(bufr)
 }
 
@@ -244,22 +247,14 @@ func NewConnectPacket(fh *FixHeader, version Version, r io.Reader) (*Connect, er
 		"CodeAddress":  "connect.go",
 		"PacketType":   fh.PacketType,
 		"Flags":        fh.Flags,
-		"RemainLength": "",
-		"ErrMalformed":fh.Flags != FlagReserved,
+		"RemainLength": fh.RemainLength,
+		"ErrMalformed": fh.Flags != FlagReserved,
 	}).Info("Received New Connect Packet")
-	buf := new(strings.Builder)
-	_, err := io.Copy(buf, r)
-	if err != nil {
-		log.Errorf("failed to copy io.Reader to stringBuilder. Err:%s", err)
-	}
-	log.Info("======================================================================================")
-	log.Infoln("received packet is:", buf.String())
-	log.Info("=======================================================================================")
 	//判断 标志位 flags 是否合法[MQTT-2.2.2-2]
 	if fh.Flags != FlagReserved {
 		return nil, codes.ErrMalformed
 	}
-	err = p.Unpack(r)
+	err := p.Unpack(r)
 	if err != nil {
 		return nil, err
 	}

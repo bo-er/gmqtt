@@ -3,7 +3,6 @@ package packets
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/DrmagicE/gmqtt/pkg/codes"
 	log "github.com/sirupsen/logrus"
@@ -27,19 +26,11 @@ func NewPingreqPacket(fh *FixHeader, r io.Reader) (*Pingreq, error) {
 		"RemainLength": fh.RemainLength,
 		"ErrMalformed": fh.Flags != FlagReserved,
 	}).Info("Received New Connect Packet")
-	buf := new(strings.Builder)
-	_, err := io.Copy(buf, r)
-	if err != nil {
-		log.Errorf("failed to copy io.Reader to stringBuilder. Err:%s", err)
-	}
-	log.Info("======================================================================================")
-	log.Infoln("received packet is:", buf.String())
-	log.Info("=======================================================================================")
 	if fh.Flags != FlagReserved {
 		return nil, codes.ErrMalformed
 	}
 	p := &Pingreq{FixHeader: fh}
-	err = p.Unpack(r)
+	err := p.Unpack(r)
 	if err != nil {
 		return nil, err
 	}
